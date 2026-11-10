@@ -56,6 +56,14 @@ body[data-mode=open] .openbar{opacity:1;pointer-events:auto}
 body[data-mode=inspect] #panel{opacity:1;pointer-events:auto}
 #p-name{font-size:clamp(30px,2.8vw,42px);line-height:1.05;letter-spacing:-.02em;font-weight:600;margin:0;text-wrap:balance}
 #p-tag{font-size:18px;line-height:1.4;color:var(--green);margin:12px 0 0;text-wrap:balance}
+#p-note{display:inline-block;margin:14px 0 0;padding:6px 12px;border-radius:999px;border:1px dashed var(--line);font-size:13px;color:var(--muted)}
+#p-photo{display:flex;align-items:center;gap:14px;padding:8px 18px 8px 8px;border-radius:16px;border:1px solid var(--line);align-self:flex-start;transition:border-color .2s,background .2s}
+#p-photo:hover{border-color:rgba(255,255,255,.3);background:rgba(255,255,255,.04)}
+#p-photo img{width:56px;height:56px;object-fit:contain;border-radius:10px;background:#16181a}
+#p-photo span{font-size:14px;font-weight:500}
+#lightbox{position:fixed;inset:0;z-index:20;display:flex;align-items:center;justify-content:center;padding:max(32px,env(safe-area-inset-top)) 16px;background:rgba(6,7,7,.92);opacity:0;transition:opacity .25s;cursor:zoom-out}
+#lightbox.show{opacity:1}
+#lightbox img{max-width:min(560px,92vw);max-height:86vh;object-fit:contain}
 .acts{display:flex;gap:10px;flex-wrap:wrap}
 .acts:not(:has(button:not([hidden]))){display:none}
 .acts .ghost{border-color:rgba(46,224,92,.45);color:var(--green)}
@@ -78,6 +86,8 @@ body.loaded #loader{opacity:0;visibility:hidden}
     background:linear-gradient(180deg,rgba(11,12,12,0),rgba(11,12,12,.9) 40%)}
   #p-name{font-size:28px}
   #p-tag{font-size:16px;margin-top:6px}
+  #p-note{margin-top:10px;font-size:12px}
+  #p-photo img{width:44px;height:44px}
 }
 @media (prefers-reduced-motion:reduce){*{transition-duration:.01ms!important}}
 </style>
@@ -98,7 +108,9 @@ body.loaded #loader{opacity:0;visibility:hidden}
   <div>
     <h2 id="p-name"></h2>
     <p id="p-tag"></p>
+    <p id="p-note" hidden></p>
   </div>
+  <button id="p-photo" hidden aria-label="Открыть фото"><img alt="Термокружка в реальности"><span>Как выглядит в жизни</span></button>
   <div class="acts">
     <button class="ghost" id="act-open" hidden>Открыть</button>
     <button class="ghost" id="act-light" hidden>Зажечь</button>
@@ -110,6 +122,7 @@ body.loaded #loader{opacity:0;visibility:hidden}
   </div>
 </aside>
 
+<div id="lightbox" hidden><img alt="Фото предмета"></div>
 <div id="loader"><svg class="logo" viewBox="0 0 426 61" aria-label="BITBLAZE" role="img" xmlns="http://www.w3.org/2000/svg"><path fill="currentColor" d="M24.5089 0C29.3598 2.79397e-05 32.971 0.209211 35.3408 0.623536C37.738 1.01033 39.8707 1.8373 41.7384 3.1077C43.6344 4.37838 45.2102 6.07873 46.4649 8.20574C47.719 10.3047 48.3462 12.6656 48.3463 15.2891C48.3463 18.1343 47.5649 20.7451 46.0035 23.1207C44.4701 25.4961 42.3775 27.2804 39.7289 28.4682C43.4645 29.5453 46.3388 31.3793 48.3463 33.9752C50.3537 36.5718 51.3553 39.6257 51.3554 43.1337C51.3554 45.8961 50.7024 48.5905 49.392 51.2148C48.1096 53.8108 46.339 55.8956 44.0812 57.4701C41.8512 59.0164 39.0912 59.9687 35.8022 60.3284C33.7389 60.5493 28.7597 60.6869 20.8692 60.7424H0L0 0L24.5089 0ZM75.5721 60.7424L63.1921 60.7424L63.1921 0L75.5721 0L75.5721 60.7424ZM133.453 10.2759L115.301 10.2759L115.301 60.7424L102.921 60.7424L102.921 10.2759L84.7277 10.2759V0L133.453 0V10.2759ZM167.743 0C172.593 0 176.205 0.209337 178.575 0.623536C180.973 1.01026 183.11 1.83703 184.978 3.1077C186.873 4.37826 188.445 6.07934 189.699 8.20574C190.953 10.3049 191.586 12.6651 191.586 15.2891C191.586 18.134 190.804 20.7453 189.243 23.1207C187.71 25.4963 185.617 27.2803 182.968 28.4682C186.704 29.5455 189.578 31.3789 191.586 33.9752C193.593 36.5718 194.595 39.6257 194.595 43.1337C194.595 45.8961 193.942 48.5906 192.631 51.2148C191.349 53.8114 189.574 55.8954 187.315 57.4701C185.085 59.0163 182.326 59.969 179.036 60.3284C176.973 60.5493 171.998 60.6869 164.109 60.7424L143.234 60.7424V0L167.743 0ZM219.519 50.5114L250.302 50.5114V60.7424L207.139 60.7424V0.498829L219.519 0.498829V50.5114ZM316.17 60.7424H302.704L297.352 46.9448L272.843 46.9448L267.778 60.7424H254.65L278.528 0L291.621 0L316.17 60.7424ZM367.695 9.52763L334.107 50.5114H368.987V60.7424L319.18 60.7424V49.6784L351.383 10.2759L322.819 10.2759V0L367.695 0V9.52763ZM424.028 10.2759L390.943 10.2759V23.7443L421.726 23.7443V33.9752L390.943 33.9752V50.5114L425.197 50.5114V60.7424L378.563 60.7424V0L424.028 0V10.2759ZM12.38 50.5114L23.8374 50.5114C28.2956 50.5114 31.1263 50.3856 32.3265 50.1373C34.1664 49.8059 35.6587 49.0032 36.8018 47.733C37.9726 46.4349 38.5599 44.7092 38.5601 42.5551C38.5601 40.732 38.1144 39.1817 37.2222 37.911C36.33 36.6411 35.0315 35.7174 33.3313 35.1375C31.6581 34.5577 28.0067 34.2646 22.3764 34.2646L12.38 34.2646L12.38 50.5114ZM155.614 50.5114H167.077C171.537 50.5114 174.368 50.3859 175.566 50.1373C177.406 49.8058 178.898 49.0035 180.041 47.733C181.212 46.4349 181.799 44.7089 181.8 42.5551C181.8 40.732 181.348 39.1817 180.456 37.911C179.564 36.642 178.27 35.7172 176.571 35.1375C174.898 34.5574 171.243 34.2646 165.611 34.2646H155.614V50.5114ZM276.647 36.7138L293.374 36.7138L284.926 14.1717L276.647 36.7138ZM12.38 24.1583H20.495C25.3173 24.1583 28.3157 24.0869 29.4865 23.9488C31.6047 23.7 33.2656 22.9813 34.4642 21.7938C35.6898 20.5787 36.2994 18.9902 36.2994 17.03C36.2994 15.1516 35.7698 13.6309 34.7103 12.4707C33.6787 11.2841 32.1329 10.5643 30.0709 10.3158C28.8442 10.1777 25.3169 10.1113 19.4902 10.1113L12.38 10.1113L12.38 24.1583ZM155.614 24.1583H163.729C168.552 24.1583 171.55 24.0869 172.721 23.9488C174.84 23.7002 176.5 22.9817 177.698 21.7938C178.925 20.5785 179.539 18.9908 179.539 17.03C179.539 15.1516 179.009 13.6309 177.95 12.4707C176.919 11.2832 175.368 10.5644 173.305 10.3158C172.077 10.1778 168.549 10.1113 162.725 10.1113L155.614 10.1113V24.1583Z"/></svg><div id="loadbar"><i></i></div></div>
 <script type="module" src="app.js"></script>
 </body>
